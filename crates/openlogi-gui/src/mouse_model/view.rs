@@ -1,26 +1,35 @@
-//! Centre-of-screen mouse silhouette with clickable hotspots.
+//! Centre-of-screen mouse silhouette with clickable hotspots and side
+//! labels connected by leader lines.
 //!
-//! Per UI.md Phase 6. The base art is drawn from positioned divs rather than
-//! shipping placeholder SVGs — keeps the asset pipeline empty until a real
+//! Per UI.md phases 6 (silhouette + hotspots) and 7 (labels + leader lines).
+//! The base art is drawn from positioned divs rather than shipping
+//! placeholder SVGs — keeps the asset pipeline empty until a real
 //! illustrator is in the loop, and the silhouette is simple enough that
 //! shapes are fine. Each hotspot is a `Popover` whose trigger is a custom
 //! `HotspotTrigger` element that highlights on hover *and* while the popover
 //! is open.
 
 use gpui::{
-    Anchor, AnyElement, App, Context, ElementId, Entity, InteractiveElement, IntoElement,
-    MouseButton, ParentElement, Render, RenderOnce, StatefulInteractiveElement as _, Styled,
-    Window, div, hsla, px, rgb,
+    Anchor, AnyElement, App, Context, ElementId, Entity, FontWeight, InteractiveElement,
+    IntoElement, MouseButton, ParentElement, Render, RenderOnce, StatefulInteractiveElement as _,
+    Styled, Window, canvas, div, hsla, px, rgb,
 };
-use gpui_component::{Selectable, popover::Popover};
+use gpui_component::{Selectable, popover::Popover, v_flex};
 
 use crate::data::mouse_buttons::{ButtonId, Hotspot, MOUSE_MODEL_SIZE, default_hotspots};
+use crate::mouse_model::leader_lines::{Label, Side, paint as paint_leader_lines};
 use crate::mouse_model::picker::action_picker;
 use crate::state::AppState;
-use crate::theme::{ACCENT_BLUE, BORDER, SURFACE, SURFACE_HOVER};
+use crate::theme::{ACCENT_BLUE, BORDER, SURFACE, SURFACE_HOVER, TEXT_MUTED, TEXT_PRIMARY};
+
+const SIDE_W: f32 = 200.;
+const SIDE_GAP: f32 = 32.;
+const LABEL_W: f32 = 160.;
+const LABEL_H: f32 = 44.;
 
 pub struct MouseModelView {
     hotspots: Vec<Hotspot>,
+    labels: Vec<Label>,
     hovered: Option<ButtonId>,
 }
 
@@ -28,6 +37,7 @@ impl MouseModelView {
     pub fn new(_cx: &mut Context<Self>) -> Self {
         Self {
             hotspots: default_hotspots(),
+            labels: default_labels(),
             hovered: None,
         }
     }
@@ -35,28 +45,154 @@ impl MouseModelView {
 
 impl Render for MouseModelView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let (w, h) = MOUSE_MODEL_SIZE;
+        let (mouse_w, mouse_h) = MOUSE_MODEL_SIZE;
+        let canvas_w = mouse_w + (SIDE_W + SIDE_GAP) * 2.;
+        let canvas_h = mouse_h;
+        let mouse_left = SIDE_W + SIDE_GAP;
         let active = cx.try_global::<AppState>().and_then(|s| s.active_button);
+        let highlight = self.hovered.or(active);
+        let bindings = cx
+            .try_global::<AppState>()
+            .map(|s| s.button_bindings.clone())
+            .unwrap_or_default();
         let view = cx.entity();
         let hovered = self.hovered;
 
+        // Leader lines are painted via a full-canvas overlay positioned
+        // behind the labels and hotspots so highlights stay readable.
+        let hotspots = self.hotspots.clone();
+        let labels = self.labels.clone();
+        let highlight_for_canvas = highlight;
+        let leader_canvas = canvas(
+            move |_bounds, _, _| (hotspots, labels, highlight_for_canvas),
+            move |bounds, payload, window, _app| {
+                let (hotspots, labels, highlight) = payload;
+                paint_leader_lines(
+                    bounds,
+                    gpui::point(px(mouse_left), px(0.)),
+                    mouse_w,
+                    &hotspots,
+                    &labels,
+                    highlight,
+                    window,
+                );
+            },
+        )
+        .size_full();
+
         div()
             .relative()
-            .w(px(w))
-            .h(px(h))
-            .child(silhouette(w, h))
-            .children(
-                self.hotspots
-                    .iter()
-                    .enumerate()
-                    .map(|(idx, hotspot)| hotspot_popover(idx, *hotspot, hovered, active, &view)),
+            .w(px(canvas_w))
+            .h(px(canvas_h))
+            .child(leader_canvas)
+            // Mouse silhouette + hotspots inside their own positioned
+            // sub-container so the absolute hotspot coords stay
+            // mouse-local.
+            .child(
+                div()
+                    .absolute()
+                    .left(px(mouse_left))
+                    .top(px(0.))
+                    .w(px(mouse_w))
+                    .h(px(mouse_h))
+                    .child(silhouette(mouse_w, mouse_h))
+                    .children(self.hotspots.iter().enumerate().map(|(idx, hotspot)| {
+                        hotspot_popover(idx, *hotspot, hovered, active, &view)
+                    })),
             )
+            // Labels, positioned in canvas-local coords on each side.
+            .children(self.labels.iter().map(|label| {
+                let binding = bindings
+                    .get(&label.id)
+                    .map_or("Unbound".to_string(), |a| a.label().to_string());
+                label_card(label, binding, highlight == Some(label.id), mouse_left, mouse_w)
+            }))
     }
 }
 
-/// The static "mouse body" art. Just a rounded slab with a wheel hint and a
-/// thumb-cluster cutout — placeholder until a real illustrator hands over
-/// a proper SVG.
+fn default_labels() -> Vec<Label> {
+    vec![
+        Label {
+            id: ButtonId::LeftClick,
+            side: Side::Left,
+            y: 80.,
+        },
+        Label {
+            id: ButtonId::Back,
+            side: Side::Left,
+            y: 230.,
+        },
+        Label {
+            id: ButtonId::Forward,
+            side: Side::Left,
+            y: 300.,
+        },
+        Label {
+            id: ButtonId::RightClick,
+            side: Side::Right,
+            y: 80.,
+        },
+        Label {
+            id: ButtonId::MiddleClick,
+            side: Side::Right,
+            y: 180.,
+        },
+        Label {
+            id: ButtonId::DpiToggle,
+            side: Side::Right,
+            y: 260.,
+        },
+    ]
+}
+
+fn label_card(
+    label: &Label,
+    binding: String,
+    highlighted: bool,
+    mouse_left: f32,
+    mouse_w: f32,
+) -> impl IntoElement {
+    let x = match label.side {
+        Side::Left => mouse_left - SIDE_GAP - SIDE_W,
+        Side::Right => mouse_left + mouse_w + SIDE_GAP,
+    };
+
+    div()
+        .absolute()
+        .left(px(x))
+        .top(px(label.y - LABEL_H / 2.))
+        .w(px(LABEL_W))
+        .h(px(LABEL_H))
+        .px_3()
+        .py_2()
+        .rounded_md()
+        .border_1()
+        .border_color(rgb(if highlighted { ACCENT_BLUE } else { BORDER }))
+        .bg(rgb(SURFACE))
+        .child(
+            v_flex()
+                .gap_0p5()
+                .child(
+                    div()
+                        .text_xs()
+                        .text_color(rgb(TEXT_MUTED))
+                        .child(label.id.label()),
+                )
+                .child(
+                    div()
+                        .text_sm()
+                        .font_weight(FontWeight::SEMIBOLD)
+                        .text_color(rgb(if highlighted {
+                            ACCENT_BLUE
+                        } else {
+                            TEXT_PRIMARY
+                        }))
+                        .child(binding),
+                ),
+        )
+}
+
+/// The static "mouse body" art.
 fn silhouette(w: f32, h: f32) -> impl IntoElement {
     div()
         .absolute()
@@ -67,7 +203,6 @@ fn silhouette(w: f32, h: f32) -> impl IntoElement {
         .border_1()
         .border_color(rgb(BORDER))
         .bg(rgb(SURFACE))
-        // Scroll-wheel stripe.
         .child(
             div()
                 .absolute()
@@ -78,7 +213,6 @@ fn silhouette(w: f32, h: f32) -> impl IntoElement {
                 .rounded_md()
                 .bg(rgb(SURFACE_HOVER)),
         )
-        // Subtle divider between left-click and right-click halves.
         .child(
             div()
                 .absolute()
@@ -88,7 +222,6 @@ fn silhouette(w: f32, h: f32) -> impl IntoElement {
                 .h(px(240.))
                 .bg(rgb(BORDER)),
         )
-        // Thumb-cluster pocket on the left side.
         .child(
             div()
                 .absolute()
@@ -130,11 +263,8 @@ fn hotspot_popover(
 struct HotspotTrigger {
     id: ElementId,
     hotspot: Hotspot,
-    /// True while the user is hovering or this hotspot is the active binding
-    /// target. Drives the visible highlight independently of popover state.
     hovered: bool,
     view: Entity<MouseModelView>,
-    /// Set by [`Popover`] when its content is open.
     selected: bool,
 }
 
