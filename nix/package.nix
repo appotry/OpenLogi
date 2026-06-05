@@ -16,7 +16,7 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "openlogi";
-  version = "0.4.0";
+  version = "0.4.1";
 
   # Build from the working tree (target/.git/etc. filtered out). cargo-bundle
   # uses the committed crates/openlogi-gui/icon/AppIcon.icns.
@@ -42,7 +42,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   # One FOD vendors every dependency, including the zed / wgpu / font-kit git
   # forks gpui pulls in. Same approach as nixpkgs' zed-editor.
-  cargoHash = "sha256-bY/yKDjdjFAF7A6Q8Yc/r5H0K0ATbP9Jq9zAN72CYi4=";
+  cargoHash = "sha256-xtO10OkV334y7FSuY+1Bof5aZsm+lwW9rc7I22U8Mjs=";
 
   postPatch = ''
     # .cargo/config.toml forces `linker = /usr/bin/cc` + a /Applications/Xcode
@@ -60,6 +60,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   nativeBuildInputs = [
     cargo-bundle # assembles OpenLogi.app from [package.metadata.bundle]
+    rustPlatform.bindgenHook # `media` (a gpui dep) runs bindgen — needs libclang
   ];
 
   # Only the GUI crate. The CLI (`openlogi`) doesn't depend on gpui_platform, so
