@@ -35,7 +35,7 @@ OpenLogi talks to Logitech HID++ mice over a Logi Bolt receiver — or a
 Bluetooth-direct / wired connection — without running Logi Options+. It ships
 two binaries:
 
-- **[OpenLogi GUI](crates/openlogi-gui)** — a GPUI desktop app: an interactive mouse diagram with clickable hotspots, a per-button action picker (41 built-in actions plus recorded custom shortcuts), DPI presets, a SmartShift panel (wheel mode, sensitivity, permanent ratchet), per-application profile overlays, a device carousel that switches between paired devices live, and a Settings window with a UI localized into 20 languages.
+- **[OpenLogi GUI](crates/openlogi-gui)** — a GPUI desktop app: an interactive mouse diagram with clickable hotspots, a per-button action picker (41 built-in actions plus custom keyboard shortcuts authored in the TOML config), DPI presets, a SmartShift panel (wheel mode, sensitivity, permanent ratchet), per-application profile overlays, a device carousel that switches between paired devices live, and a Settings window with a UI localized into 20 languages.
 - **[OpenLogi CLI](crates/openlogi-cli)** — a CLI for headless inventory (`list`) plus asset-sync and on-device diagnostic subcommands.
 
 Everything is local: bindings live in a plain TOML file, button presses are remapped through the OS event tap, and DPI / SmartShift changes are written straight to the device over HID++.
@@ -71,7 +71,7 @@ Things OpenLogi does that Options+ won't:
 | Battery percentage / charge state | ✅ (online devices) |
 | Interactive GUI: carousel, mouse diagram, action picker | ✅ macOS + Linux |
 | Button remapping via the OS event tap / evdev hook | ✅ macOS + Linux |
-| 41-action catalog + recorded custom keyboard shortcuts | ✅ macOS + Linux¹ |
+| 41-action catalog + custom keyboard shortcuts (TOML-authored) | ✅ macOS + Linux¹ |
 | DPI control + presets + Cycle / Set-preset actions (HID++ `0x2201`) | ✅ |
 | SmartShift wheel: mode toggle + sensitivity + permanent-ratchet panel (HID++ `0x2111`) | ✅ |
 | Per-application profile overlays (auto-switch on app focus) | ✅ macOS, 🟡 Linux (X11 only) |

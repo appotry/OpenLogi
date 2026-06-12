@@ -33,7 +33,7 @@ Remappez les boutons, pilotez le DPI et SmartShift, basculez de profil selon l'a
 
 OpenLogi dialogue avec les souris Logitech HID++ via un récepteur Logi Bolt — ou une connexion Bluetooth directe / filaire — sans exécuter Logi Options+. Il fournit deux binaires :
 
-- **[OpenLogi GUI](../crates/openlogi-gui)** — une application de bureau GPUI : un schéma de souris interactif avec zones cliquables, un sélecteur d'action par bouton (41 actions intégrées plus des raccourcis personnalisés enregistrés), des préréglages DPI, un panneau SmartShift (mode de molette, sensibilité, cran permanent), des surcouches de profil par application, un carrousel d'appareils qui bascule en direct entre les appareils appairés, et une fenêtre de réglages dont l'interface est traduite en 20 langues.
+- **[OpenLogi GUI](../crates/openlogi-gui)** — une application de bureau GPUI : un schéma de souris interactif avec zones cliquables, un sélecteur d'action par bouton (41 actions intégrées plus des raccourcis personnalisés rédigés dans la configuration TOML), des préréglages DPI, un panneau SmartShift (mode de molette, sensibilité, cran permanent), des surcouches de profil par application, un carrousel d'appareils qui bascule en direct entre les appareils appairés, et une fenêtre de réglages dont l'interface est traduite en 20 langues.
 - **[OpenLogi CLI](../crates/openlogi-cli)** — un outil en ligne de commande : inventaire headless (`list`), synchronisation des assets et sous-commandes de diagnostic des appareils.
 
 Tout reste local : les affectations vivent dans un fichier TOML brut, les pressions de boutons sont remappées par le hook d'événements de l'OS, et les changements DPI / SmartShift sont écrits directement sur l'appareil via HID++.
@@ -60,7 +60,7 @@ Ce qu'OpenLogi fait et qu'Options+ ne fait pas :
 | Pourcentage de batterie / état de charge | ✅ (appareils en ligne) |
 | GUI interactive : carrousel, schéma de souris, sélecteur d'action | ✅ macOS + Linux |
 | Remappage des boutons via le hook d'événements OS / evdev | ✅ macOS + Linux |
-| Catalogue de 41 actions + raccourcis clavier personnalisés enregistrés | ✅ macOS + Linux¹ |
+| Catalogue de 41 actions + raccourcis clavier personnalisés (rédigés en TOML) | ✅ macOS + Linux¹ |
 | Contrôle DPI + préréglages + actions Cycle / Set-preset (HID++ `0x2201`) | ✅ |
 | Molette SmartShift : mode + sensibilité + cran permanent (HID++ `0x2111`) | ✅ |
 | Surcouches de profil par application (bascule automatique au focus) | ✅ macOS, 🟡 Linux (X11 uniquement) |

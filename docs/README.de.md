@@ -33,7 +33,7 @@ Tasten neu belegen, DPI und SmartShift steuern, Profile pro App umschalten — o
 
 OpenLogi spricht mit Logitech-HID++-Mäusen über einen Logi-Bolt-Empfänger — oder per Bluetooth-Direktverbindung / Kabel — ganz ohne Logi Options+. Es liefert zwei Programme:
 
-- **[OpenLogi GUI](../crates/openlogi-gui)** — eine GPUI-Desktop-App: ein interaktives Mausdiagramm mit klickbaren Hotspots, ein Aktions-Picker pro Taste (41 eingebaute Aktionen plus aufgezeichnete eigene Tastenkürzel), DPI-Voreinstellungen, ein SmartShift-Panel (Radmodus, Empfindlichkeit, permanente Rasterung), Profil-Overlays pro Anwendung, ein Geräte-Karussell, das live zwischen gekoppelten Geräten wechselt, und ein Einstellungsfenster mit einer in 20 Sprachen lokalisierten Oberfläche.
+- **[OpenLogi GUI](../crates/openlogi-gui)** — eine GPUI-Desktop-App: ein interaktives Mausdiagramm mit klickbaren Hotspots, ein Aktions-Picker pro Taste (41 eingebaute Aktionen plus eigene Tastenkürzel, von Hand in der TOML-Konfiguration angelegt), DPI-Voreinstellungen, ein SmartShift-Panel (Radmodus, Empfindlichkeit, permanente Rasterung), Profil-Overlays pro Anwendung, ein Geräte-Karussell, das live zwischen gekoppelten Geräten wechselt, und ein Einstellungsfenster mit einer in 20 Sprachen lokalisierten Oberfläche.
 - **[OpenLogi CLI](../crates/openlogi-cli)** — ein Kommandozeilenwerkzeug für headless Inventar (`list`) sowie Asset-Sync- und Geräte-Diagnose-Unterbefehle.
 
 Alles bleibt lokal: Belegungen liegen in einer einfachen TOML-Datei, Tastendrücke werden über den OS-Event-Hook umgeleitet, und DPI-/SmartShift-Änderungen werden per HID++ direkt aufs Gerät geschrieben.
@@ -60,7 +60,7 @@ Was OpenLogi kann und Options+ nicht:
 | Akkustand / Ladezustand | ✅ (Geräte online) |
 | Interaktive GUI: Karussell, Mausdiagramm, Aktions-Picker | ✅ macOS + Linux |
 | Tastenumbelegung über OS-Event-Hook / evdev | ✅ macOS + Linux |
-| Katalog mit 41 Aktionen + aufgezeichnete eigene Tastenkürzel | ✅ macOS + Linux¹ |
+| Katalog mit 41 Aktionen + eigene Tastenkürzel (TOML-handgepflegt) | ✅ macOS + Linux¹ |
 | DPI-Steuerung + Voreinstellungen + Cycle-/Set-Preset-Aktionen (HID++ `0x2201`) | ✅ |
 | SmartShift-Rad: Modus + Empfindlichkeit + permanente Rasterung (HID++ `0x2111`) | ✅ |
 | Profil-Overlays pro Anwendung (Auto-Wechsel bei App-Fokus) | ✅ macOS, 🟡 Linux (nur X11) |
