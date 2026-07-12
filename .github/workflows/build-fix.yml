@@ -1,15 +1,31 @@
-name: Build patched Linux package
+name: Build patched Linux packages & release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.6.19-fix1)'
+        required: true
+        default: v0.6.19-fix1
+
+permissions:
+  contents: write
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   linux-packages:
-    name: Linux packages (amd64)
-    runs-on: ubuntu-latest
+    name: Linux packages (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
 
@@ -17,9 +33,21 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Verify runner architecture
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          case "$(uname -m)" in
+            x86_64) got=amd64 ;;
+            aarch64) got=arm64 ;;
+            *) echo "unexpected machine $(uname -m)" >&2; exit 1 ;;
+          esac
+          test "$got" = "$EXPECTED_ARCH"
+
       - name: Install system dependencies and nfpm
         env:
           NFPM_VERSION: "2.46.3"
+          NFPM_ARCH: ${{ matrix.arch == 'amd64' && 'amd64' || 'arm64' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -28,7 +56,7 @@ jobs:
             libxkbcommon-x11-dev libx11-xcb-dev \
             libssl-dev libzstd-dev pkg-config
           curl -fsSLo /tmp/nfpm.deb \
-            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_amd64.deb"
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_${NFPM_ARCH}.deb"
           sudo dpkg -i /tmp/nfpm.deb
 
       - name: Build and package
@@ -36,14 +64,56 @@ jobs:
 
       - name: Collect packages
         run: |
+          TAG="${{ inputs.tag }}"
           mkdir -p dist
           for pkg in target/release/*.deb target/release/*.rpm; do
             [ -f "$pkg" ] || continue
             ext="${pkg##*.}"
-            cp "$pkg" "dist/openlogi-fixed-linux-amd64.${ext}"
+            cp "$pkg" "dist/openlogi-${TAG}-linux-${{ matrix.arch }}.${ext}"
           done
 
       - uses: actions/upload-artifact@v7
         with:
-          name: OpenLogi-fixed-linux-packages
+          name: OpenLogi-linux-packages-${{ matrix.arch }}
           path: dist/*
+
+  release:
+    name: Publish release
+    needs: linux-packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: OpenLogi-linux-packages-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          shopt -s nullglob
+          sha256sum *.deb *.rpm > SHA256SUMS
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.tag }}"
+          gh release create "$TAG" dist/* \
+            --title "OpenLogi $TAG (RefCell fix)" \
+            --notes "Patched build with PR #337 fix: avoid RefCell panic on Linux Wayland/X11 when applying theme on OS appearance change.
+
+## Changes
+- Fix: read OS appearance from Window field instead of \`cx.window_appearance()\`
+- Resolves RefCell already borrowed panic on launch (Linux only)
+
+## Usage
+\`\`\`bash
+sudo dpkg -i openlogi-${TAG}-linux-amd64.deb
+systemctl --user restart openlogi-agent.service
+openlogi-gui
+\`\`\`
+" \
+            --repo ${{ github.repository }}
