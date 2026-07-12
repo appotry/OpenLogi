@@ -101,19 +101,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ inputs.tag }}"
+          NOTES=$(mktemp)
+          {
+            echo "Patched build with PR #337 fix: avoid RefCell panic on Linux."
+            echo ""
+            echo "## Changes"
+            echo "- Fix: read OS appearance from Window field instead of cx.window_appearance()"
+            echo "- Resolves RefCell already borrowed panic on launch (Linux only)"
+            echo ""
+            echo "## Usage"
+            echo 'sudo dpkg -i openlogi-<tag>-linux-amd64.deb'
+            echo 'systemctl --user restart openlogi-agent.service'
+            echo 'openlogi-gui'
+          } > "$NOTES"
           gh release create "$TAG" dist/* \
             --title "OpenLogi $TAG (RefCell fix)" \
-            --notes "Patched build with PR #337 fix: avoid RefCell panic on Linux Wayland/X11 when applying theme on OS appearance change.
-
-## Changes
-- Fix: read OS appearance from Window field instead of \`cx.window_appearance()\`
-- Resolves RefCell already borrowed panic on launch (Linux only)
-
-## Usage
-\`\`\`bash
-sudo dpkg -i openlogi-${TAG}-linux-amd64.deb
-systemctl --user restart openlogi-agent.service
-openlogi-gui
-\`\`\`
-" \
+            --notes-file "$NOTES" \
             --repo ${{ github.repository }}
