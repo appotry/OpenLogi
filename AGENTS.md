@@ -22,7 +22,7 @@ sits beneath both.
 | `crates/openlogi-core` | Pure types: TOML config, device model, action catalog. No I/O, no async |
 | `crates/openlogi-hidpp` | Vendored fork of the `hidpp` protocol crate (**lib name `hidpp`**, 0BSD) |
 | `crates/openlogi-hid` | Device discovery + HID++ writes over `async-hid` |
-| `crates/openlogi-assets` | Device-render registry + cached fetch from assets.openlogi.org |
+| `crates/openlogi-assets` | Device-render registry + cached fetch from OpenLogi asset mirrors |
 | `crates/openlogi-cli` | `clap` command tree: `list`, `assets`, `diag` |
 | `crates/openlogi-hook` | OS input capture: CGEventTap / evdev+uinput / WH_MOUSE_LL |
 | `crates/openlogi-inject` | OS input synthesis: CGEvent / uinput+MPRIS / SendInput |
@@ -64,7 +64,7 @@ direnv exec . git commit …
 
 ## Rust standards
 
-Edition 2024, MSRV 1.88. Workspace lints (root `Cargo.toml`): `unsafe_code = "deny"`
+Edition 2024, MSRV 1.96. Workspace lints (root `Cargo.toml`): `unsafe_code = "deny"`
 (opt out per item with `#[expect(unsafe_code, reason = "…")]` plus a `// SAFETY:`
 comment), `clippy::pedantic` at warn, `unwrap_used`/`expect_used` at warn.
 `openlogi-hidpp` deliberately does not inherit workspace lints (vendored code). Any
